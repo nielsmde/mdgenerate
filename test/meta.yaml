@@ -1,0 +1,33 @@
+template: /home/phd/mdgenerate/test/base.yaml
+
+# General metadata
+name:     Test Simulation
+shortname: test
+
+indir:    in
+outdir:   out
+
+# Input data
+top:      /path/to/top
+gro:      /path/to/gro
+
+# Queue Info
+queue:    nodes
+
+# Simulation Info
+T:        300
+time:     1ns
+timestep: 3fs
+
+mdp:
+  tcouple:  Nose-Hoover
+  pcouple:  no
+
+sbatch:
+  partition:     gpu-nodes
+  nodes:         1
+  ntasks:        1
+  cpus-per-task: 8
+  gres:          gpu:1
+
+mdrun:

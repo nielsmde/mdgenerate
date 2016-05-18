@@ -1,0 +1,13 @@
+; Generated with mdgenerate.py, {{ timestamp }}
+; Source-file: {{ directoy }}/{{ filename }}
+
+nststeps        = {{ time // timestep }}
+dt              = {{ timestep }}
+ref_t           = {{ T }}
+
+{% if mdp is not defined %}
+{% set mdp = dict() %}
+{% endif %}
+{% for key, val in mdp.items() %}
+{{ key }}       = {{ val }}
+{% endfor %}
