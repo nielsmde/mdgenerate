@@ -3,13 +3,16 @@
 ### Generated with mdgenerate.py, {{ timestamp }} ###
 
 #SBATCH --workdir={{ root }}
-#SBATCH --job-name={{ shortname }}
+#SBATCH --job-name={{ name }}
+{% if sbatch is defined %}
 {%  for key, val in sbatch.items() %}
 #SBATCH --{{ key }}={{ val }}
 {% endfor %}
+{% endif %}
 
-OUTDIR="{{ root }}/{{ outdir }}"
-NAME="{{ shortname }}"
+OUTDIR="{{ root }}{% if outdir is defined %}/{{ outdir }}{% endif %}"
+NAME="{{ name }}{%if T is defined %}{{ T | int }}{% endif %}"
+
 module purge
 module load gromacs/5.1
 

@@ -3,11 +3,15 @@
 
 nststeps        = {{ time // timestep }}
 dt              = {{ timestep }}
-ref_t           = {{ T }}
-
-{% if mdp is not defined %}
-{% set mdp = dict() %}
+{% if temperature is defined %}
+ref_t           = {{ temperature }}
 {% endif %}
+{% if pressure is defined %}
+ref_p           = {{ pressure }}
+{% endif %}
+
+{% if mdp is defined %}
 {% for key, val in mdp.items() %}
 {{ key }}       = {{ val }}
 {% endfor %}
+{% endif %}
