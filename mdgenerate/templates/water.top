@@ -1,0 +1,20 @@
+{#
+This is a sphinx template for a water topology with constrained molecules.
+#}
+; General OPLS-AA topology
+#include "oplsaa.ff/forcefield.itp"
+
+; SPCE topology: residue SOL
+#include "oplsaa.ff/spce.itp"
+
+; posre SPCE topology: residue WAL
+#include "/data/niels/sim/top/oplsaa.ff/spce_posre.itp"
+
+[ system ]
+; Name
+{{ name }}
+
+[ molecules ]
+; Compound	nrmols
+SOL		{{ nr_sol }}
+{% if nr_wal is defined %}WAL		{{ nr_wal }}{% endif %}
