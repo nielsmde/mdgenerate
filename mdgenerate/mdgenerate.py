@@ -7,11 +7,49 @@ import re
 import os
 import shutil
 import time
-import yaml
+import subprocess
 
+# from subprocess import run, PIPE, STDOUT
+
+import yaml
 import jinja2
 
+GMX_VERSION = '5.1'
+
+DEFAULT_KEYS = {
+    'mdp-file': 'mdpin.mdp',
+    'slurm-file': 'slurm.sh',
+    'tpr-file': 'topol.tpr',
+
+}
+
+TEMPLATE_DIR = os.path.join(os.environ['HOME'], '.mdgenerate/templates')
+
 env = jinja2.Environment(loader=jinja2.PackageLoader('mdgenerate', 'templates'))
+
+
+class GMXError(OSError):
+    pass
+
+
+def run_gmx(command):
+    process = subprocess.Popen(
+        ['/bin/bash', '-l'],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        universal_newlines=True
+    )
+    stdin = """
+        module purge gromacs
+        module load gromacs/{gmx}
+        {cmd}
+    """.format(gmx=GMX_VERSION, cmd=command)
+    stdin, stderr = process.communicate(stdin)
+    process.terminate()
+    if process.returncode is not 0:
+        raise GMXError('Error in gmx command: {}'.format(command), stderr)
+    return stdin, stderr
 
 
 def time_to_ps(tstr):
@@ -34,7 +72,7 @@ def locate_template(template):
     *base, ext = template.split('.')
     if ext != 'yaml':
         template += '.yaml'
-    return os.path.abspath(os.path.join(os.environ['HOME'], '.mdgenerate/templates', template))
+    return os.path.abspath(os.path.join(TEMPLATE_DIR, template))
 
 
 class MetaDict(dict):
@@ -54,7 +92,7 @@ class MetaDict(dict):
         return env.get_template('template.mdp').render(**self)
 
     @property
-    def as_slurmstr(self):
+    def as_slurm(self):
         self._timestamp()
         return env.get_template('template.slurm').render(**self)
 
@@ -84,7 +122,7 @@ class MetaDict(dict):
             else:
                 self[key] = val
 
-    def __init__(self, yaml_file):
+    def _init_with_yaml(self, yaml_file):
         self.directory, self.filename = os.path.split(yaml_file)
         with open(yaml_file) as f:
             yaml_dict = yaml.load(f.read())
@@ -105,8 +143,17 @@ class MetaDict(dict):
         for key in self.time_keys:
             if key in self:
                 val = self[key]
-                if isinstance(val , str):
+                if isinstance(val, str):
                     self[key] = time_to_ps(val)
+
+        for key, val in DEFAULT_KEYS.items():
+            self.setdefault(key, val)
+
+    def __init__(self, *args, **kwargs):
+        if len(args) == 1 and isinstance(args[0], str):
+            self._init_with_yaml(args[0])
+        else:
+            super().__init__(*args, **kwargs)
 
     def __getitem__(self, key):
         try:
@@ -115,7 +162,7 @@ class MetaDict(dict):
             raise KeyError('Mandatory key {} not found in file: {}'.format(key, self.filename))
 
 
-def generate_directory(meta, override=False):
+def generate_files(meta, override=False):
     """
     Generate the simulation directory based on a MetaDict.
 
@@ -130,9 +177,58 @@ def generate_directory(meta, override=False):
         else:
             print('Simulation directory is not empty, but override=True')
 
-    indir = os.path.join(meta.directory, meta.indir)
-    outdir = os.path.join(meta.directory, meta.outdir)
+    indir = os.path.join(meta.directory, meta.get('indir', ''))
+    outdir = os.path.join(meta.directory, meta.get('outdir', ''))
     os.mkdir(indir)
     os.mkdir(outdir)
-    shutil.copyfile(meta.top, indir)
-    shutil.copyfile(meta.gro, indir)
+
+    if meta.get('copy-topology', False):
+        for f in meta['topology-files']:
+            shutil.copyfile(f, indir)
+
+    with open(meta['mdp-file'], 'w') as f:
+        f.write(meta.as_mdp)
+
+
+def generate_slurm(meta):
+    slurm_file = os.path.join(meta.directory, meta.get('slurm-file', 'slurm.sh'))
+    with open(slurm_file, 'w') as f:
+        f.write(meta.as_slurm)
+
+
+def grompp(meta, generate=True):
+    if generate:
+        generate_files(meta)
+
+    indir = os.path.join(meta['directory'], meta['indir'])
+    args = [
+        'gmx', 'grompp',
+        '-f', os.path.join(indir, meta['mdp-file']),
+    ]
+    for fname in meta['topology-files']:
+        ext = fname.split('.')[-1]
+        if ext in ['gro', 'g96', 'pdb', 'brk', 'ent', 'esp', 'tpr']:
+            args += ['-c', fname]
+        elif ext == 'ndx':
+            args += ['-n', fname]
+        elif ext == 'top':
+            args += ['-p', fname]
+
+    assert '-c' in args, 'No structure file specified.'
+    assert '-p' in args, 'No topology file specified.'
+
+    args.append('-o')
+    args.append(os.path.join(indir, meta['tpr-file']))
+
+    try:
+        run_gmx(' '.join(args))
+    except GMXError as error:
+        raise error
+        # _, stderr = error.args
+        # if 'Error' in error.stderr:
+        #    raise error
+
+
+
+def submit(meta):
+    pass
