@@ -9,4 +9,5 @@ setup(
     packages=['mdgenerate'],
     version=__version__,
     requires=['numpy', 'mdevaluate', 'yaml', 'jinja2'],
+    package_data={'mdgenerate': ['templates/*']},
 )
