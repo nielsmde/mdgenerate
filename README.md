@@ -22,7 +22,7 @@ key value pairs or a list.
 
 ### Templates
 
-Each YAML file can have a key `template`, which defines one or more templates.
+Each YAML file can have a key `extends`, which defines one or more templates.
 Templates can be given by full path, or a name (or relative path) which will be
 looked for in the standard template location `~/.mdgenerate/templates`.
 If a list of templates is given, the inheritance is carried out from top to
@@ -34,7 +34,7 @@ Keys that define a dictionary (e.g. mdp, so below) will be merged when templates
 
 This is an example how a YAML file can look like:
 ```
-template:   
+extends:   
   - base
   - nodes
 

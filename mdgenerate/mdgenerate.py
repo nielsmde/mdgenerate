@@ -101,8 +101,8 @@ class MetaDict(dict):
         with open(yaml_file) as f:
             yaml_dict = MetaDict(yaml.load(f.read()), yaml_file)
 
-        if 'template' in yaml_dict:
-            template_dict = MetaDict(locate_template(yaml_dict['template']))
+        if 'extends' in yaml_dict:
+            template_dict = MetaDict(locate_template(yaml_dict['extends']))
             template_dict.update(yaml_dict)
             yaml_dict = template_dict
 
@@ -124,18 +124,17 @@ class MetaDict(dict):
 
     def _init_with_yaml(self, yaml_file):
         self.directory, self.filename = os.path.split(yaml_file)
-        with open(yaml_file) as f:
+        with open(yaml_file, 'r') as f:
             yaml_dict = yaml.load(f.read())
 
-        if 'template' in yaml_dict:
-            if isinstance(yaml_dict['template'], list):
-                templates = yaml_dict['template']
+        if 'extends' in yaml_dict:
+            if isinstance(yaml_dict['extends'], list):
+                templates = yaml_dict['extends']
                 template_dict = MetaDict(locate_template(templates[0]))
                 for template in templates:
-                    with open(locate_template(template)) as f:
-                        template_dict.update(yaml.load(f.read()))
+                    template_dict.update(MetaDict(locate_template(template)))
             else:
-                template_dict = MetaDict(locate_template(yaml_dict['template']))
+                template_dict = MetaDict(locate_template(yaml_dict['extends']))
             template_dict.update(yaml_dict)
             yaml_dict = template_dict
 

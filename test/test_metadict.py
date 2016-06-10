@@ -21,7 +21,7 @@ def yaml(request):
     with open('/tmp/meta.yaml', 'w') as f:
         f.write(
             """
-            template: /tmp/base.yaml
+            extends: /tmp/base.yaml
             time: 1ns
             timestep: 1fs
             T: 300
@@ -50,7 +50,7 @@ def yaml_multi():
     with open('/tmp/meta2.yaml', 'w') as f:
         f.write(
             """
-            template:
+            extends:
               - /tmp/base.yaml
               - /tmp/base2.yaml
             queue: nodes
@@ -75,7 +75,7 @@ def yaml_dicts(yaml):
     with open('/tmp/meta3.yaml', 'w') as f:
         f.write(
             """
-            template:
+            extends:
               - /tmp/base.yaml
               - /tmp/base3.yaml
             mdrun:
