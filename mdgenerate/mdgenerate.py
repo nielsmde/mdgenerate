@@ -243,3 +243,14 @@ def grompp(meta, generate=True):
 
 def submit(meta):
     pass
+
+
+def process(yaml_file, submit=False):
+    """
+    Process a YAML file and generate all files. If submit=True submit it to slurm.
+    """
+    meta = MetaDict(yaml_file)
+    grompp(meta)
+    generate_slurm(meta)
+    if submit:
+        submit(meta)
