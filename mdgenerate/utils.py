@@ -7,13 +7,13 @@ def save_open(filename, mode='w'):
     Open a file savely by backing up an existing file with this name.
     """
 
-    if os.path.exists(filename):
+    if os.path.exists(filename) and mode in ['w', 'wb']:
         i = 0
         backup_format = '{}/#{}.{}'.format(*os.path.split(filename), '{i}')
         while os.path.exists(backup_format.format(i=i)):
             i += 1
-        shutil.copy2(filename, backup_format.format(i=i))
-        print('Backing up file: {} -> {}'.format(filename, backup_format.format(i=i)))
+        shutil.copy(filename, backup_format.format(i=i))
+        # print('Backing up file: {} -> {}'.format(filename, backup_format.format(i=i)))
     return open(filename, mode=mode)
 
 GRO_HEAD = '{name}\n{nmol}\n'
