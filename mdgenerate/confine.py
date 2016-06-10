@@ -1,13 +1,12 @@
 """
 This module provides functionality to generate simulations of confined systems.
 """
+import os
+import numpy as np
+import mdevaluate as md
 
 from .utils import save_open, write_gro
 from .mdgenerate import env
-
-import numpy as np
-import os
-import mdevaluate as md
 
 POSRE_LINE = '{ind:>6d}  {func}  {params[0]:e} {params[1]:e} {params[2]:e}\n'
 
@@ -72,10 +71,11 @@ def make_spherical_conf(trajectory, constraint_subset, step, outfile, radius,
 
     if method == 'residue':
         atoms = []
+        atom_crds = trajectory[step] % trajectory[step].box.diagonal()
         for atm, res, resnr, x in zip(atom_names,
                                       trajectory.atoms.residue_names,
                                       residue_ids,
-                                      trajectory[step]):
+                                      atom_crds):
             atm_dict = {'atm': atm, 'resnr': resnr, 'x': x}
             if resnr in constr_res:
                 atm_dict['res'] = kwargs['constrained_residue']
