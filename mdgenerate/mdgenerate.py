@@ -2,6 +2,7 @@
 Python module to generate GROMACS simulation input
 and submit them to SLURM.
 """
+from .utils import save_open as open
 
 import re
 import os
@@ -20,7 +21,8 @@ DEFAULT_KEYS = {
     'mdp-file': 'mdpin.mdp',
     'slurm-file': 'slurm.sh',
     'tpr-file': 'topol.tpr',
-
+    'indir': '',
+    'outdir': '',
 }
 
 TEMPLATE_DIR = os.path.join(os.environ['HOME'], '.mdgenerate/templates')
@@ -62,7 +64,6 @@ def time_to_ps(tstr):
     if m is None:
         raise ValueError('Could not parse time: {}'.format(tstr))
     val, prefactor = m.groups()
-    print(prefactor)
     decade = -3 * prefactors.index(prefactor) + 12
     return float(val) * 10**decade
 
@@ -147,6 +148,8 @@ class MetaDict(dict):
 
         for key, val in DEFAULT_KEYS.items():
             self.setdefault(key, val)
+        self['root'] = self.directory
+        self['filename'] = self.filename
 
     def __init__(self, *args, **kwargs):
         if len(args) == 1 and isinstance(args[0], str):
@@ -155,8 +158,16 @@ class MetaDict(dict):
             super().__init__(*args, **kwargs)
 
     def __getitem__(self, key):
+        if key == 'directory':
+            return self.directory
         try:
-            return super().__getitem__(key)
+            val = super().__getitem__(key)
+            if '-file' in key or key in ['indir', 'outdir']:
+                if isinstance(val, str):
+                    val = os.path.join(self.directory, val)
+                elif isinstance(val, list):
+                    val = [os.path.join(self.directory, v) for v in val]
+            return val
         except KeyError:
             raise KeyError('Mandatory key {} not found in file: {}'.format(key, self.filename))
 
@@ -170,20 +181,20 @@ def generate_files(meta, override=False):
         override (bool, opt.): Override an exsiting directory.
     """
     _, dirs, files = next(os.walk(meta.directory))
-    if dirs or files.remove(meta.filename):
-        if not override:
-            raise FileExistsError('Simulation directory is not empty: {}'.format(meta.directory))
-        else:
-            print('Simulation directory is not empty, but override=True')
+#    if dirs or files.remove(meta.filename):
+#        if not override:
+#            raise FileExistsError('Simulation directory is not empty: {}'.format(meta.directory))
+#        else:
+#            print('Simulation directory is not empty, but override=True')
 
-    indir = os.path.join(meta.directory, meta.get('indir', ''))
-    outdir = os.path.join(meta.directory, meta.get('outdir', ''))
-    os.mkdir(indir)
-    os.mkdir(outdir)
+    # indir = os.path.join(meta.directory, meta.get('indir', ''))
+    # outdir = os.path.join(meta.directory, meta.get('outdir', ''))
+    os.makedirs(meta['indir'], exist_ok=True)
+    os.makedirs(meta['outdir'], exist_ok=True)
 
     if meta.get('copy-topology', False):
         for f in meta['topology-files']:
-            shutil.copyfile(f, indir)
+            shutil.copy(f, meta['indir'])
 
     with open(meta['mdp-file'], 'w') as f:
         f.write(meta.as_mdp)
@@ -202,7 +213,8 @@ def grompp(meta, generate=True):
     indir = os.path.join(meta['directory'], meta['indir'])
     args = [
         'gmx', 'grompp',
-        '-f', os.path.join(indir, meta['mdp-file']),
+        '-f', meta['mdp-file'],
+        '-po', os.path.join(indir, 'mdout.mdp')
     ]
     for fname in meta['topology-files']:
         ext = fname.split('.')[-1]

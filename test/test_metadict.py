@@ -129,3 +129,10 @@ def test_mdp(yaml):
     assert isinstance(mdp, str)
     assert 'mdp1' in mdp
     assert 'mdp2' in mdp
+
+
+def test_dict_defaults(yaml):
+    meta = mdgenerate.MetaDict('/tmp/meta.yaml')
+    assert meta['mdp-file'] == '/tmp/mdpin.mdp'
+    assert meta['slurm-file'] == '/tmp/slurm.sh'
+    assert meta['tpr-file'] == '/tmp/topol.tpr'
