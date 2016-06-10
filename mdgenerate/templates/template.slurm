@@ -5,8 +5,7 @@
 #SBATCH --workdir={{ root }}
 #SBATCH --job-name={{ name }}
 {% if sbatch is defined %}
-{%  for key, val in sbatch.items() %}
-#SBATCH --{{ key }}={{ val }}
+{%  for key, val in sbatch.items() %}#SBATCH --{{ key }}={{ val }}
 {% endfor %}
 {% endif %}
 
@@ -25,4 +24,6 @@ gmx mdrun \
   -g $OUTDIR/log_$NAME.log \
   -cpo $OUTDIR/$NAME.cpt \
   -cpi $OUTDIR/$NAME.cpt \
-  {% for key, val in mdrun.items() %} -{{ key }} {{ val }}{% endfor %}
+ {% for key, val in mdrun.items() %} -{{ key }} {{ val }}{% endfor %}
+
+touch $OUTDIR/finished

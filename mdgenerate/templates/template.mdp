@@ -1,17 +1,18 @@
 ; Generated with mdgenerate.py, {{ timestamp }}
-; Source-file: {{ directoy }}/{{ filename }}
+; Source-file: {{ root }}/{{ filename }}
 
-nststeps        = {{ time // timestep }}
+nsteps        = {{ (time / timestep) | int }}
 dt              = {{ timestep }}
 {% if temperature is defined %}
-ref_t           = {{ temperature }}
+ref-t           = {{ temperature }}
+gen-temp        = {{ temperature }}
 {% endif %}
 {% if pressure is defined %}
-ref_p           = {{ pressure }}
+ref-p           = {{ pressure }}
 {% endif %}
 
 {% if mdp is defined %}
 {% for key, val in mdp.items() %}
-{{ key }}       = {{ val }}
+{{ key }} = {{ val }}
 {% endfor %}
 {% endif %}
