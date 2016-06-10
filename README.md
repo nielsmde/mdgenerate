@@ -59,7 +59,7 @@ mdp:
 
 This YAML file is based on two templates, which could for example define options for mdrun or sbatch.
 
-## Mandatory keys
+### Mandatory keys
 
 All keys mentioned in this section have to be defined in the YAML file
 (or a template file) before the simulation can be generated.
@@ -69,7 +69,7 @@ All keys mentioned in this section have to be defined in the YAML file
 - **timestep**: The time step of the simulation.
 - **topology-files**: A list of topology files, e.g. top, gro, ndx.
 
-## Optional keys
+### Optional keys
 
 The following keys are optional in the sense, that `mdgenerate` will work if they are not defined, but they may still be necessary for the simulation to run properly.
 Default values are given in brackets, if they are not None.
@@ -80,14 +80,16 @@ Default values are given in brackets, if they are not None.
 - **outdir**: Sub-Directory where output files will be located.
 - **mdp-file** [mdpin.mdp]: Name of the generated mdp file.
 - **slurm-file** [slurm.sh]: Name of the generated slurm script.
+- **tpr-file** [topol.tpr]
+- **copy-topology** [False]: If topology files should be copied to input directory.
 
-## Parameter dictionaries
+### Parameter dictionaries
 
 There are three sets of parameters which can be defined for the simulations:
 **mdp**, **sbatch** and  **mdrun**.
 As shown in the example, these dictionary are defined in the manner of nested key value pairs.
 
 
-## Time values
+### Time values
 
 For time values `mdgenerate` supports time units (fs, ps, ns, us, ms, s) which will be converted to the float value in pico seconds in the generation process.
