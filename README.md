@@ -6,6 +6,31 @@ It is based on a YAML-templating system which defines the simulation parameters.
 The templating system supports multiple inheritance which allows the user to define
 several parameters of the simulation by using predefined templates.
 
+## Installation
+
+MDGenerate has the following Python requirements:
+
+- jinja2
+- yaml
+
+Addtionally for the confine module:
+
+- NumPy
+- mdevaluate
+
+Except for mdevaluate those packages can be installed via conda or pip.
+The package mdevaluate is available from [its git repository](https://chaos3.fkp.physik.tu-darmstadt.de/diffusion/MDE/).
+
+## Usage
+
+The main purpose of mdgenerate is the generation of Gromacs simulation input from YAML-files.
+Therefore it provides the function `mdevaluate.process(yaml)` that processes the specified YAML-file.
+It will also install a command line tool, which can be used with:
+
+    $ mdprocess [yaml]
+
+The one optional argument is again the name of a YAML-file, which defaults to a file `meta.yaml` in the current directory.
+
 ## YAML-files
 
 The parameters of the simulation are defined in YAML files.
@@ -52,8 +77,8 @@ indir:        in
 outdir:       out
 
 mdp:
-  - tcouple:    Nose-Hoover
-  - pcouple:    Berendsen
+  tcouple:    Nose-Hoover
+  pcouple:    Berendsen
 
 ```
 
@@ -78,9 +103,9 @@ Default values are given in brackets, if they are not None.
 - **pressure**
 - **indir**: Sub-Directory  where input files will be located.
 - **outdir**: Sub-Directory where output files will be located.
-- **mdp-file** [mdpin.mdp]: Name of the generated mdp file.
-- **slurm-file** [slurm.sh]: Name of the generated slurm script.
-- **tpr-file** [topol.tpr]
+- **mdp_file** [mdpin.mdp]: Name of the generated mdp file.
+- **slurm_file** [slurm.sh]: Name of the generated slurm script.
+- **tpr_file** [topol.tpr]
 - **copy-topology** [False]: If topology files should be copied to input directory.
 
 ### Parameter dictionaries
@@ -92,4 +117,4 @@ As shown in the example, these dictionary are defined in the manner of nested ke
 
 ### Time values
 
-For time values `mdgenerate` supports time units (fs, ps, ns, us, ms, s) which will be converted to the float value in pico seconds in the generation process.
+For time values `mdgenerate` supports time units (fs, ps, ns, us, ms, s) which will be converted to the float value in pico seconds.

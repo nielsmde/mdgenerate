@@ -9,14 +9,14 @@
 {% endfor %}
 {% endif %}
 
-OUTDIR="{{ root }}{% if outdir is defined %}/{{ outdir }}{% endif %}"
-NAME="{{ name }}{%if T is defined %}{{ T | int }}{% endif %}"
+OUTDIR="{{ outdir }}"
+NAME="{{ name }}"
 
 module purge
-module load gromacs/5.1
+module load gromacs/{{ gmx_version }}
 
 gmx mdrun \
-  -s {{ tpr }} \
+  -s {{ tpr_file }} \
   -o $OUTDIR/$NAME.trr \
   -c $OUTDIR/$NAME.gro \
   -x $OUTDIR/traj_full_$NAME.xtc \

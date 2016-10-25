@@ -10,4 +10,10 @@ setup(
     version=__version__,
     requires=['numpy', 'mdevaluate', 'yaml', 'jinja2'],
     package_data={'mdgenerate': ['templates/*']},
+    entry_points={
+        'console_scripts': [
+            'mdprocess = mdgenerate.cli:run'
+        ]
+    },
+    zip_safe=False,
 )

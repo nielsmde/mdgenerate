@@ -133,6 +133,6 @@ def test_mdp(yaml):
 
 def test_dict_defaults(yaml):
     meta = mdgenerate.MetaDict('/tmp/meta.yaml')
-    assert meta['mdp-file'] == '/tmp/mdpin.mdp'
-    assert meta['slurm-file'] == '/tmp/slurm.sh'
-    assert meta['tpr-file'] == '/tmp/topol.tpr'
+    assert meta['mdp_file'] == '/tmp/mdpin.mdp'
+    assert meta['slurm_file'] == '/tmp/slurm.sh'
+    assert meta['tpr_file'] == '/tmp/topol.tpr'

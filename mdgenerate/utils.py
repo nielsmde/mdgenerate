@@ -1,6 +1,9 @@
 import os
 import shutil
 
+import numpy as np
+from mdevaluate import pbc
+
 
 def save_open(filename, mode='w'):
     """
@@ -29,7 +32,7 @@ def write_gro(gro_file, atoms, name, box):
         gro_file: Gro file to write
         atoms: List of dicts with the keys:
             - 'res': residue name
-            - 'resnr': residue indes
+            - 'resnr': residue index
             - 'atm': atom name
             - 'x': coordinates
             - 'v': velocities (optional)

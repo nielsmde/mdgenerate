@@ -10,17 +10,20 @@ import shutil
 import time
 import subprocess
 
+import numpy as np
+
+import mdevaluate as md
 # from subprocess import run, PIPE, STDOUT
 
 import yaml
 import jinja2
 
-GMX_VERSION = '5.1'
+GMX_VERSION = '5.1.3'
 
 DEFAULT_KEYS = {
-    'mdp-file': 'mdpin.mdp',
-    'slurm-file': 'slurm.sh',
-    'tpr-file': 'topol.tpr',
+    'mdp_file': 'mdpin.mdp',
+    'slurm_file': 'slurm.sh',
+    'tpr_file': 'topol.tpr',
     'indir': '',
     'outdir': '',
 }
@@ -85,17 +88,23 @@ class MetaDict(dict):
     time_keys = ['time', 'timestep']
 
     def _timestamp(self):
-        self['timestamp'] = time.strftime('%D.%m.%Y %H:%M')
+        self['timestamp'] = time.strftime('%d.%m.%Y %H:%M')
+
+    def _todict(self):
+        d = dict()
+        for key in self:
+            d[key] = self[key]
+        return d
 
     @property
     def as_mdp(self):
         self._timestamp()
-        return env.get_template('template.mdp').render(**self)
+        return env.get_template('template.mdp').render(**self._todict())
 
     @property
     def as_slurm(self):
         self._timestamp()
-        return env.get_template('template.slurm').render(**self)
+        return env.get_template('template.slurm').render(**self._todict())
 
     def load_yaml(yaml_file):
         """Load a yaml file and process its template."""
@@ -162,7 +171,7 @@ class MetaDict(dict):
             return self.directory
         try:
             val = super().__getitem__(key)
-            if '-file' in key or key in ['indir', 'outdir']:
+            if 'file' in key or key in ['indir', 'outdir']:
                 if isinstance(val, str):
                     val = os.path.join(self.directory, val)
                 elif isinstance(val, list):
@@ -196,12 +205,12 @@ def generate_files(meta, override=False):
         for f in meta['topology-files']:
             shutil.copy(f, meta['indir'])
 
-    with open(meta['mdp-file'], 'w') as f:
+    with open(meta['mdp_file'], 'w') as f:
         f.write(meta.as_mdp)
 
 
 def generate_slurm(meta):
-    slurm_file = os.path.join(meta.directory, meta.get('slurm-file', 'slurm.sh'))
+    slurm_file = os.path.join(meta.directory, meta.get('slurm_file', 'slurm.sh'))
     with open(slurm_file, 'w') as f:
         f.write(meta.as_slurm)
 
@@ -213,9 +222,10 @@ def grompp(meta, generate=True):
     indir = os.path.join(meta['directory'], meta['indir'])
     args = [
         'gmx', 'grompp',
-        '-f', meta['mdp-file'],
+        '-f', meta['mdp_file'],
         '-po', os.path.join(indir, 'mdout.mdp')
     ]
+
     for fname in meta['topology-files']:
         ext = fname.split('.')[-1]
         if ext in ['gro', 'g96', 'pdb', 'brk', 'ent', 'esp', 'tpr']:
@@ -229,7 +239,11 @@ def grompp(meta, generate=True):
     assert '-p' in args, 'No topology file specified.'
 
     args.append('-o')
-    args.append(os.path.join(indir, meta['tpr-file']))
+    args.append(os.path.join(indir, meta['tpr_file']))
+
+    for arg, val in meta.get('grompp', {}).items():
+        args.append('-{}'.format(arg))
+        args.append(str(val))
 
     try:
         run_gmx(' '.join(args))
@@ -245,12 +259,56 @@ def submit(meta):
     pass
 
 
-def process(yaml_file, submit=False):
+def process(yaml_file, submit=False, run_grompp=True):
     """
     Process a YAML file and generate all files. If submit=True submit it to slurm.
     """
     meta = MetaDict(yaml_file)
-    grompp(meta)
+    global GMX_VERSION
+    if 'gmx_version' in meta:
+        GMX_VERSION = meta['gmx_version']
+    else:
+        meta['gmx_version'] = GMX_VERSION
+    if run_grompp:
+        grompp(meta)
     generate_slurm(meta)
     if submit:
         submit(meta)
+
+
+def nvt_from_npt(trajectory, topology, outfile, edrfile=None, window=0.3, accuracy=1e-5):
+    """
+    Find the mean boxsize of a NpT trajectory and write out the latest frame
+    with this boxsize as gro file.
+
+    Args:
+        trajectory: Trajectory file of the NpT simulation
+        topology: Topology of the NpT simulation
+        outfile: Filename of the output gro file
+        window (opt.): Fraction of the trajectory the box size is averaged over
+        accuracy (opt.): Maximum deviation of the boxsize from the mean value
+    """
+    npt_traj = md.open('', trajectory=trajectory, topology=topology, cached=True, verbose=False)
+    if edrfile is not None:
+        energy = md.open_energy(edrfile)
+        boxsize = np.identity(3) * energy['Box-X'][-int(window * len(energy.time)):].mean()
+    else:
+        boxsize = np.mean([f.box for f in npt_traj[-int(window * len(npt_traj)):]], axis=0)
+    # print('Mean Box Size: {}nm'.format(boxsize))
+    fbox = 0
+    i = 0
+    # print()
+    while np.absolute(fbox - boxsize).max() > accuracy:
+        i += 1
+        fbox = npt_traj[-i].box
+        # print('\r{}'.format(np.absolute(fbox - boxsize).max()), end='')
+        if i > window*len(npt_traj):
+            raise ValueError("Adequate Box size was not found.")
+    # print()
+    time = npt_traj[-i].time
+    # print('Taking frame at i={}, t={}ps'.format(i, time))
+    command = """gmx trjconv -o {out} -s {top} -f {xtc} -pbc whole -b {t} -e {t} <<EOF
+    0
+    EOF
+    """
+    run_gmx(command.format(out=outfile, top=topology, xtc=trajectory, t=time))
