@@ -21,7 +21,7 @@ def save_open(filename, mode='w'):
 
 GRO_HEAD = '{name}\n{nmol}\n'
 GRO_BODY = '{resnr:>5}{res:<5}{atm:>5}{atmnr:>5}{x[0]:8.3f}{x[1]:8.3f}{x[2]:8.3f}{v[0]}{v[1]}{v[2]}\n'
-GRO_BOX = '{box[0]:10.05} {box[1]:10.05} {box[1]:10.05}\n'
+GRO_BOX = '{box[0]:10.05} {box[1]:10.05} {box[2]:10.05}\n'
 
 
 def write_gro(gro_file, atoms, name, box):

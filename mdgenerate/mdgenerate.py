@@ -276,7 +276,7 @@ def process(yaml_file, submit=False, run_grompp=True):
         submit(meta)
 
 
-def nvt_from_npt(trajectory, topology, outfile, edrfile=None, window=0.3, accuracy=1e-5):
+def nvt_from_npt(trajectory, topology, outfile, edrfile=None, window=0.3, accuracy=1e-5, use_best=False):
     """
     Find the mean boxsize of a NpT trajectory and write out the latest frame
     with this boxsize as gro file.
@@ -291,22 +291,27 @@ def nvt_from_npt(trajectory, topology, outfile, edrfile=None, window=0.3, accura
     npt_traj = md.open('', trajectory=trajectory, topology=topology, cached=True, verbose=False)
     if edrfile is not None:
         energy = md.open_energy(edrfile)
-        boxsize = np.identity(3) * energy['Box-X'][-int(window * len(energy.time)):].mean()
+        boxsize = np.eye(3) * [energy[dim][-int(window * len(energy.time)):].mean() for dim in ('Box-X', 'Box-Y', 'Box-Z')]
     else:
         boxsize = np.mean([f.box for f in npt_traj[-int(window * len(npt_traj)):]], axis=0)
-    # print('Mean Box Size: {}nm'.format(boxsize))
     fbox = 0
     i = 0
-    # print()
-    while np.absolute(fbox - boxsize).max() > accuracy:
+    best = (np.inf, 0)
+    difference = np.inf
+    while difference > accuracy:
         i += 1
         fbox = npt_traj[-i].box
-        # print('\r{}'.format(np.absolute(fbox - boxsize).max()), end='')
+        difference = np.absolute(fbox - boxsize).max()
+        if difference < best[0]:
+            best = (difference, i)
         if i > window*len(npt_traj):
-            raise ValueError("Adequate Box size was not found.")
-    # print()
+            if use_best:
+                i = best[1]
+                break
+            else:
+                raise ValueError("Adequate Box size was not found. Best: {}".format(best))
+
     time = npt_traj[-i].time
-    # print('Taking frame at i={}, t={}ps'.format(i, time))
     command = """gmx trjconv -o {out} -s {top} -f {xtc} -pbc whole -b {t} -e {t} <<EOF
     0
     EOF
