@@ -11,15 +11,16 @@
 
 OUTDIR="{{ outdir }}"
 NAME="{{ name }}"
-
+TPRFILE="{{ tpr_file }}"
+XTCFILE="$OUTDIR/traj_full_$NAME.xtc"
 module purge
 module load gromacs/{{ gmx_version }}
 
 gmx mdrun \
-  -s {{ tpr_file }} \
+  -s $TPRFILE \
   -o $OUTDIR/$NAME.trr \
   -c $OUTDIR/$NAME.gro \
-  -x $OUTDIR/traj_full_$NAME.xtc \
+  -x $XTCFILE \
   -e $OUTDIR/energy_$NAME.edr \
   -g $OUTDIR/log_$NAME.log \
   -cpo $OUTDIR/$NAME.cpt \
@@ -27,3 +28,8 @@ gmx mdrun \
  {% for key, val in mdrun.items() %} -{{ key }} {{ val }}{% endfor %}
 
 touch $OUTDIR/finished
+
+{% if do_index is defined and do_index %}
+module load mdevaluate/dev
+index-xtc --nojump --tpr=$TPRFILE $XTCFILE
+{% endif %}
