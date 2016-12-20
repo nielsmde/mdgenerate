@@ -13,6 +13,9 @@ OUTDIR="{{ outdir }}"
 NAME="{{ name }}"
 TPRFILE="{{ tpr_file }}"
 XTCFILE="$OUTDIR/traj_full_$NAME.xtc"
+
+{% if preprocess is defined %}{{ preprocess }}{% endif %}
+
 module purge
 module load gromacs/{{ gmx_version }}
 
