@@ -36,3 +36,5 @@ touch $OUTDIR/finished
 module load mdevaluate/dev
 index-xtc --nojump --tpr=$TPRFILE $XTCFILE
 {% endif %}
+
+{% if postprocess is defined %}{{ postprocess }}{% endif %}
