@@ -12,7 +12,8 @@ setup(
     package_data={'mdgenerate': ['templates/*']},
     entry_points={
         'console_scripts': [
-            'mdprocess = mdgenerate.cli:run'
+            'mdprocess = mdgenerate.cli:run',
+            'npt2nvt = mdgenerate.cli:generate_nvt'
         ]
     },
     zip_safe=False,
