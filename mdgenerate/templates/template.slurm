@@ -14,6 +14,8 @@ NAME="{{ name }}"
 TPRFILE="{{ tpr_file }}"
 XTCFILE="$OUTDIR/traj_full_$NAME.xtc"
 
+rm -f $OUTDIR/finished
+
 {% if preprocess is defined %}{{ preprocess }}{% endif %}
 
 module purge
@@ -30,7 +32,10 @@ gmx mdrun \
   -cpi $OUTDIR/$NAME.cpt \
  {% for key, val in mdrun.items() %} -{{ key }} {{ val }}{% endfor %}
 
-touch $OUTDIR/finished
+if [ -f $OUTDIR/$NAME.gro ]
+then
+  touch $OUTDIR/finished
+fi
 
 {% if do_index is defined and do_index %}
 module load mdevaluate/dev

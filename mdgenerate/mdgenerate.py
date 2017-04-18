@@ -254,7 +254,6 @@ def grompp(meta, generate=True):
         #    raise error
 
 
-
 def submit(meta):
     pass
 
