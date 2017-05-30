@@ -2,7 +2,7 @@
 Python module to generate GROMACS simulation input
 and submit them to SLURM.
 """
-from .utils import save_open as open
+from .utils import save_open as open, write_gro
 
 import re
 import os
@@ -303,7 +303,7 @@ def nvt_from_npt(trajectory, topology, outfile, edrfile=None, window=0.3, accura
         difference = np.absolute(fbox - boxsize).max()
         if difference < best[0]:
             best = (difference, i)
-        if i > window*len(npt_traj):
+        if i > window * len(npt_traj):
             if use_best:
                 i = best[1]
                 break
@@ -316,3 +316,62 @@ def nvt_from_npt(trajectory, topology, outfile, edrfile=None, window=0.3, accura
     EOF
     """
     run_gmx(command.format(out=outfile, top=topology, xtc=trajectory, t=time))
+
+
+def make_short_sims(directory, N, dt=0.01, timeshift=1000.0, queue='nodes'):
+    """
+    Create some short simulations for a given simulation.
+    """
+    traj = md.open(directory, trajectory='out/*.xtc')
+    time_max = traj[-1].time
+    timestep = round(traj[1].time - traj[0].time, 3)
+    time = timestep * 11
+    if time < 2000 and queue == 'nodes':
+        queue = 'short'
+    if timestep <= dt:
+        print("Timestep of trajectory is {:.3f}, dt={:.3f}. Skipping...".format(timestep, dt))
+        return
+    timeshift = max(timeshift, 10 * timestep)
+
+    if N * timeshift > time_max / 2:
+        timeshift = time_max / (2 * N)
+
+    print('timestep=', timestep, 'time=', time, 'timeshift=', timeshift)
+
+    with open(os.path.join(directory, 'meta.yaml'), mode='r') as f:
+        meta = yaml.load(f.read())
+
+    meta['name'] += '_sh'
+    meta['time'] = '{:.3f}ps'.format(time)
+    meta['mdp']['nstxout-compressed'] = int(dt // time_to_ps(meta['timestep']))
+    topfiles = meta['topology-files']
+    meta['topology-files'] = []
+    for top in topfiles:
+        if '.top' in top:
+            top = '../../' + top
+        meta['topology-files'].append(top)
+    meta['extends'] = [queue, 'nvt']
+
+    for i in range(N):
+        shift = - int(((i * timeshift) // timestep + 1))
+        step = len(traj) + shift
+        print('shifting:', step, shift, traj[shift].time)
+        short_dir = os.path.join(directory, 'short', str(step))
+        short_yaml = os.path.join(short_dir, 'meta.yaml')
+        if os.path.exists(os.path.join(short_dir, 'topol.tpr')):
+            continue
+
+        os.makedirs(os.path.join(short_dir), exist_ok=True)
+        with open(short_yaml, mode='w') as f:
+            # f.write(yaml.dump(meta))
+            yaml.dump(meta, stream=f, default_flow_style=False)
+
+        frame = traj[step]
+        atoms = [{'res': res, 'resnr': resnr, 'atm': atm, 'x': x} for (res, resnr, atm, x) in zip(
+            frame.residue_names, frame.residue_ids, frame.atom_names, frame
+        )]
+        write_gro(
+            os.path.join(short_dir, 'biwater.gro'),
+            atoms, 'Configuration at step={}'.format(step), traj[step].box.diagonal()
+        )
+        process(short_yaml)
