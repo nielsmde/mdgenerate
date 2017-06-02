@@ -2,7 +2,7 @@
 Command line interface for mdgenerate.
 """
 
-from .mdgenerate import process, nvt_from_npt
+from .mdgenerate import process, nvt_from_npt, make_short_sims
 
 import argparse
 import os
@@ -69,3 +69,20 @@ def generate_nvt():
         args.xtcfile, os.path.join(basedir, args.top), args.output,
         edrfile=os.path.join(basedir, args.edr), use_best=args.best
     )
+
+
+def make_short():
+    """
+    Command line tool to generate some short simulations from a NVT run.
+    """
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--directory', default='.')
+    parser.add_argument('-n', default=5)
+    parser.add_argument('--queue', default='nodes')
+    parser.add_argument('--debug', default=False, action='store_true')
+    args = parser.parse_args()
+
+    if args.debug:
+        print(args)
+    else:
+        make_short_sims(os.path.abspath(args.directory), args.n, queue=args.queue)

@@ -1,5 +1,17 @@
 from setuptools import setup
-from mdgenerate import __version__
+
+
+def get_version(module):
+    version = ''
+    with open(module) as f:
+        for line in f:
+            if '__version__' in line:
+                version = line.split('=')[-1].strip("' \n\t")
+                break
+    return version
+
+
+__version__ = get_version('mdgenerate/__init__.py')
 
 
 setup(
@@ -13,7 +25,8 @@ setup(
     entry_points={
         'console_scripts': [
             'mdprocess = mdgenerate.cli:run',
-            'npt2nvt = mdgenerate.cli:generate_nvt'
+            'npt2nvt = mdgenerate.cli:generate_nvt',
+            'makeshort = mdgenerate.cli:make_short'
         ]
     },
     zip_safe=False,
