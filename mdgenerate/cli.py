@@ -77,7 +77,7 @@ def make_short():
     """
     parser = argparse.ArgumentParser()
     parser.add_argument('--directory', default='.')
-    parser.add_argument('-n', default=5)
+    parser.add_argument('-n', default=5, type=int)
     parser.add_argument('--queue', default='nodes')
     parser.add_argument('--debug', default=False, action='store_true')
     args = parser.parse_args()
