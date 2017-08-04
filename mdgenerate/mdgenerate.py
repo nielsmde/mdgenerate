@@ -50,11 +50,11 @@ def run_gmx(command):
         module load gromacs/{gmx}
         {cmd}
     """.format(gmx=GMX_VERSION, cmd=command)
-    stdin, stderr = process.communicate(stdin)
+    stdout, stderr = process.communicate(stdin)
     process.terminate()
     if process.returncode is not 0:
         raise GMXError('Error in gmx command: {}'.format(command), stderr)
-    return stdin, stderr
+    return stdout, stderr
 
 
 def time_to_ps(tstr):
@@ -246,7 +246,9 @@ def grompp(meta, generate=True):
         args.append(str(val))
 
     try:
-        run_gmx(' '.join(args))
+        stdout, stderr = run_gmx(' '.join(args))
+        with open(os.path.join(indir, 'grompp.log'), 'w') as log:
+            log.write(stdout + stderr)
     except GMXError as error:
         raise error
         # _, stderr = error.args
